@@ -2,6 +2,9 @@ from fastapi import APIRouter, UploadFile, File, Form
 import shutil
 import os
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
 from typing import Dict
 from services.video_processor import VideoProcessor
 from services.intelligence import SignalOptimizer, KalmanFilter
@@ -21,9 +24,9 @@ kalman_filters = {
 
 # Twilio Integration
 notification_service = NotificationService(
-    account_sid="AC52a689d4989f028954cd42d52c73102a",
-    auth_token="4b3256fbe379f5cdb18f84a0fd8d9e49",
-    from_number="+16812533265"
+    account_sid=os.getenv("TWILIO_ACCOUNT_SID"),
+    auth_token=os.getenv("TWILIO_AUTH_TOKEN"),
+    from_number=os.getenv("TWILIO_FROM_NUMBER")
 )
 
 # Global simulation state
