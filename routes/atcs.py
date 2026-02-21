@@ -5,6 +5,7 @@ import time
 from typing import Dict
 from services.video_processor import VideoProcessor
 from services.intelligence import SignalOptimizer, KalmanFilter
+from services.notification import NotificationService
 
 router = APIRouter()
 
@@ -17,6 +18,13 @@ kalman_filters = {
     "east": KalmanFilter(),
     "west": KalmanFilter()
 }
+
+# Twilio Integration
+notification_service = NotificationService(
+    account_sid="AC52a689d4989f028954cd42d52c73102a",
+    auth_token="4b3256fbe379f5cdb18f84a0fd8d9e49",
+    from_number="+16812533265"
+)
 
 # Global simulation state
 SIMULATION_SESSION = {
@@ -94,13 +102,18 @@ async def upload_intersection(
         history = SIMULATION_SESSION["emergency_history"]
         if detection.get("emergency_detected"):
             history[direction] += 1
+            print(f"[SYSTEM] Emergency Spotting in {direction.upper()} (Count: {history[direction]}/2)")
         else:
-            history[direction] = 0
+            # Soft reset: Decrement instead of zeroing to handle flickering
+            history[direction] = max(0, history[direction] - 1)
         
-        is_validated = history[direction] >= 3
+        is_validated = history[direction] >= 2 # Lowered from 3
         if is_validated and not confirmed_emergency:
             confirmed_emergency = True
             confirmed_dir = direction
+            print(f"[SYSTEM] Emergency CONFIRMED in {direction.upper()} - Dispatching Dispatcher...")
+            # Trigger Twilio Voice Alert
+            notification_service.notify_emergency(direction, detection.get('emergency_type', 'Emergency Vehicle'))
 
         # 2. Weighted Queue Calculation (MATCH STATED USER FORMAT)
         cats = detection.get('categories', {})
